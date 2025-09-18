@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import AuthShell from "../components/AuthShell";
 
 const Signin = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -16,68 +17,69 @@ const Signin = () => {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:5000/signin", form);
+      const res = await axios.post("http://localhost:3000/signin", form);
       localStorage.setItem("metameet-user", JSON.stringify(res.data.user));
-      navigate("/room");
+      navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Signin failed");
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <AuthShell title="Welcome Back" subtitle="Sign in to access your virtual rooms">
       <motion.form
         onSubmit={handleSignin}
-        className="p-8 bg-theme-surface rounded-xl shadow-lg max-w-sm w-full border border-theme"
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, type: "spring", stiffness: 50 }}
+        transition={{ duration: .55, ease: [0.4, 0.8, 0.3, 1] }}
+        className="space-y-5"
+        aria-describedby={error ? 'signin-error' : undefined}
       >
-        <h2 className="text-2xl font-bold mb-4 text-center text-accent-gradient">Welcome Back</h2>
-        <p className="text-center text-theme-secondary mb-6">Sign in to access your virtual room</p>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium mb-1 text-theme-secondary">Email Address</label>
+            <input
+              id="username"
+              name="username"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              className={`input-base ${error ? 'input-error' : ''}`}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium mb-1 text-theme-secondary">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              className={`input-base ${error ? 'input-error' : ''}`}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        </div>
 
-        <motion.input
-          name="username"
-          placeholder="Email Address"
-          className="mb-4 px-4 py-2 block w-full text-theme-primary bg-white border-2 border-theme rounded-md focus:outline-none transition"
-          style={{ 
-            '--tw-ring-color': 'var(--accent-start)',
-            'borderColor': 'var(--border)'
-          }}
-          onFocus={(e) => e.target.style.borderColor = 'var(--accent-start)'}
-          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-          onChange={handleChange}
-          required
-          whileFocus={{ scale: 1.05 }}
-        />
+        {error && <p id="signin-error" role="alert" className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">{error}</p>}
 
-        <motion.input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="mb-6 px-4 py-2 block w-full text-theme-primary bg-white border-2 border-theme rounded-md focus:outline-none transition"
-          style={{ 
-            '--tw-ring-color': 'var(--accent-start)',
-            'borderColor': 'var(--border)'
-          }}
-          onFocus={(e) => e.target.style.borderColor = 'var(--accent-start)'}
-          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-          onChange={handleChange}
-          required
-          whileFocus={{ scale: 1.05 }}
-        />
+        <div className="pt-2">
+          <motion.button
+            type="submit"
+            className="w-full btn-base btn-primary"
+            whileHover={{ scale: 1.015 }}
+            whileTap={{ scale: 0.96 }}
+          >
+            Sign In
+          </motion.button>
+        </div>
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        <motion.button
-          type="submit"
-          className="w-full py-2 bg-accent-gradient rounded-md font-semibold text-white hover:opacity-90 transition"
-          whileHover={{ scale: 1.05 }}
-        >
-          Sign In
-        </motion.button>
+        <p className="text-xs text-theme-secondary text-center pt-2">Don't have an account? <Link to="/signup" className="text-accent-gradient hover:opacity-80">Create one</Link></p>
       </motion.form>
-    </div>
+    </AuthShell>
   );
 };
 

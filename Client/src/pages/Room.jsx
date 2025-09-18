@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FaSignOutAlt } from "react-icons/fa";
 import socket from "../socket";
 
 const Room = () => {
-  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const navigate = useNavigate();
+  const [position, setPosition] = useState({ x: 100, y: 120 });
   const [players, setPlayers] = useState({});
   const movementSpeed = 10;
 
@@ -69,21 +73,18 @@ const Room = () => {
 
   return (
     <div className="w-screen h-screen bg-theme-primary relative overflow-hidden">
-      {/* Welcome Message */}
-      <p className="absolute top-4 left-4 text-theme-primary font-semibold text-lg">
-        👋 Welcome, {user?.username}
-      </p>
-
-      {/* Logout Button */}
-      <button
-        onClick={() => {
-          localStorage.removeItem("metameet-user");
-          window.location.href = "/";
-        }}
-        className="absolute top-4 right-4 bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
+      {/* Exit Room Button */}
+      <motion.button
+        onClick={() => navigate('/dashboard')}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="absolute top-20 left-4 z-20 glass-panel glow-border soft-shadow px-4 py-3 rounded-xl hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)] flex items-center space-x-2"
+        aria-label="Exit room"
       >
-        Logout
-      </button>
+        <FaSignOutAlt size={14} className="text-accent-gradient" />
+        <span className="text-sm font-medium text-theme-primary">Exit Room</span>
+      </motion.button>
 
       {/* Your Avatar */}
       <div

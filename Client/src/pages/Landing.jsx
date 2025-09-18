@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaUsers, FaSyncAlt, FaUserEdit, FaMobileAlt } from "react-icons/fa";
+import AuroraBackground from "../components/AuroraBackground";
+import AnimatedGrid from "../components/AnimatedGrid";
+import GlassCard from "../components/GlassCard";
 
 const features = [
   {
@@ -31,12 +34,25 @@ function GlowingParticles({ count = 90, className = "" }) {
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
-    const temp = Array.from({ length: count }, () => ({
-      top: `${Math.random() * 100}%`,
-      left: `${Math.random() * 100}%`,
-      delay: Math.random() * 5,
-      duration: 4 + Math.random() * 4,
-    }));
+    const accentColors = [
+      'var(--accent-start)',
+      'var(--accent-end)',
+      '#6d72ff',
+      '#b27bff'
+    ];
+    const temp = Array.from({ length: count }, () => {
+      const size = 2 + Math.random() * 4; // 2px - 6px
+      const color = accentColors[Math.floor(Math.random()*accentColors.length)];
+      return {
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        delay: Math.random() * 4,
+        duration: 3.5 + Math.random() * 5,
+        size,
+        color,
+        yOffset: 12 + Math.random() * 28
+      };
+    });
     setParticles(temp);
   }, [count]);
 
@@ -45,15 +61,18 @@ function GlowingParticles({ count = 90, className = "" }) {
       {particles.map((p, i) => (
         <motion.span
           key={i}
-          className={`absolute w-[3px] h-[3px] rounded-full opacity-70 ${className}`}
+          className={`absolute rounded-full opacity-80 ${className}`}
           style={{ 
             top: p.top, 
             left: p.left,
-            backgroundColor: 'var(--accent-start)',
-            boxShadow: '0 0 6px var(--accent-start)'
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            boxShadow: `0 0 ${6 + p.size * 1.8}px ${p.size * 0.4}px ${p.color}`,
+            filter: 'blur(.3px)'
           }}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ y: -20, opacity: [0, 0.8, 0] }}
+          initial={{ opacity: 0, y: p.yOffset * 0.4 }}
+          animate={{ y: -p.yOffset, opacity: [0, 0.9, 0] }}
           transition={{ repeat: Infinity, duration: p.duration, delay: p.delay, ease: 'easeInOut' }}
         />
       ))}
@@ -61,65 +80,103 @@ function GlowingParticles({ count = 90, className = "" }) {
   );
 }
 
+
 const Landing = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen overflow-hidden w-full">
-      <GlowingParticles count={100} />
+    <div className="relative min-h-screen overflow-hidden w-full bg-theme-primary text-theme-primary">
+      {/* Ambient Layers */}
+      <AuroraBackground />
+      <AnimatedGrid />
+      <GlowingParticles count={90} />
 
-      {/* CTA Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="text-center px-4 py-24 w-full"
-      >
-        <h2 className="text-4xl md:text-6xl font-extrabold mb-6 text-accent-gradient">
-          Step Into The 2D Metaverse
-        </h2>
-        <p className="text-lg mb-8 text-theme-secondary max-w-2xl mx-auto">
-          MetaMeet is a browser-based platform for interactive virtual rooms where avatars connect, collaborate, and communicate.
-        </p>
-        <button
-          onClick={() => navigate("/room")}
-          className="px-6 py-3 bg-accent-gradient text-white rounded-full font-semibold hover:opacity-90 transition"
-        >
-          🚪 Enter Room
-        </button>
-      </motion.div>
+  {/* Hero Section */}
+  <section className="relative pt-32 md:pt-40 pb-44 md:pb-56 content-wrapper">
+        <div className="grid-overlay-hero"></div>
+        <div className="max-w-3xl mx-auto text-center relative">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6"
+          >
+            Metameet: Connect, Collaborate, Simply.<br className="hidden md:block" />
+            <span className="text-accent-gradient">The 2D Metaverse for All.</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, delay: .15, ease: 'easeOut' }}
+            className="text-lg md:text-xl text-theme-secondary max-w-2xl mx-auto mb-10"
+          >
+            Build meaningful interactions inside lightweight, expressive virtual rooms. Real-time movement, identity, and collaboration—accessible on any device.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: .25, duration: .7 }}
+            className="flex justify-center items-center"
+          >
+            <button
+              onClick={() => navigate('/signup')}
+              className="btn-base btn-cta ring-pulse shadow-lg"
+            >
+              Get Started
+            </button>
+          </motion.div>
+        </div>
+
+      </section>
 
       {/* Features Section */}
-      <section className="py-16 px-6 md:px-12 w-full">
-        <h3 className="text-3xl font-bold text-center mb-12">✨ Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+  <section className="relative py-10 md:py-20 content-wrapper">
+        <div className="mx-auto mb-12 text-center max-w-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Capabilities</h2>
+
+        </div>
+        <div className="grid gap-8 md:gap-10 grid-cols-1 sm:grid-cols-2">
           {features.map((feature, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.2 }}
-              className="bg-theme-surface/20 border border-theme rounded-xl p-6 flex items-start gap-4 backdrop-blur-md hover:scale-105 hover:shadow-2xl transition-transform duration-300 cursor-pointer hover:bg-theme-surface/30"
-            >
-              <div className="mt-1" style={{ color: 'var(--accent-start)' }}>{feature.icon}</div>
-              <div>
-                <h4 className="text-xl font-semibold mb-1 text-theme-primary">{feature.title}</h4>
-                <p className="text-sm text-theme-secondary">{feature.desc}</p>
+            <GlassCard key={feature.title} delay={idx * 0.07} className="p-6 flex items-start gap-5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-theme-surface/40 glow-border" style={{ color: 'var(--accent-start)' }}>
+                {feature.icon}
               </div>
-            </motion.div>
+              <div>
+                <h3 className="text-lg font-semibold mb-1">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-theme-secondary">{feature.desc}</p>
+              </div>
+            </GlassCard>
           ))}
         </div>
       </section>
 
+      {/* Secondary CTA */}
+      <section className="relative py-20 content-wrapper">
+        <GlassCard className="p-10 md:p-14 text-center">
+          <h3 className="text-2xl md:text-3xl font-bold mb-4">Ready to Build Your Space?</h3>
+            <p className="text-theme-secondary max-w-2xl mx-auto mb-8">Spin up a room, invite your team or friends, and explore movement, presence, and ambient collaboration in seconds.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button onClick={() => navigate('/room')} className="btn-base btn-primary">Start Now</button>
+              <button onClick={() => navigate('/signup')} className="btn-base btn-outline glow-border">Create Account</button>
+            </div>
+        </GlassCard>
+      </section>
+
       {/* Footer */}
-      <footer className="border-t border-theme py-6 px-6 flex flex-col md:flex-row justify-between items-center text-sm text-theme-secondary bg-theme-surface/40 backdrop-blur w-full">
-        <div className="flex items-center space-x-2 mb-2 md:mb-0">
-          <span>Made with</span>
-          <span className="text-red-500">❤️</span>
-          <span>by</span>
-          <a href="#" className="hover:opacity-80 transition" style={{ color: 'var(--accent-start)' }}> Team MetaMeet 💻</a>
+      <footer className="relative border-t border-theme/60 py-8 mt-10 content-wrapper text-sm text-theme-secondary">
+        <div className="flex flex-col md:flex-row justify-between gap-6">
+          <div className="space-y-2 max-w-md">
+            <span className="block font-semibold text-theme-primary">MetaMeet</span>
+            <p className="text-xs leading-relaxed">A lightweight shared presence layer for the browser. Built for creative, social, and collaborative expression.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span>Made with</span>
+            <span className="text-red-500">❤</span>
+            <span>by</span>
+            <a href="#" className="hover:opacity-80 transition" style={{ color: 'var(--accent-start)' }}>Team MetaMeet</a>
+          </div>
+          <div className="text-xs opacity-80">© 2025 MetaMeet. All rights reserved.</div>
         </div>
-        <span>© 2025 metameet. All rights reserved.</span>
       </footer>
     </div>
   );
