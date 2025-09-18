@@ -1,1 +1,77 @@
 @import "tailwindcss";
+
+/* Theme CSS Custom Properties */
+/* Default to dark mode */
+:root {
+  --bg-primary: #0A0A1A;
+  --bg-surface: #161C31;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0CC;
+  --border: #3A3D57;
+  --accent-start: #4A4AFF;
+  --accent-end: #C061E8;
+}
+
+/* Light Mode Colors */
+:root[data-theme="light"] {
+  --bg-primary: #F9FAFB;
+  --bg-surface: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --border: #D1D5DB;
+  --accent-start: #4A4AFF;
+  --accent-end: #C061E8;
+}
+
+/* Dark Mode Colors (explicit) */
+:root[data-theme="dark"] {
+  --bg-primary: #0A0A1A;
+  --bg-surface: #161C31;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0CC;
+  --border: #3A3D57;
+  --accent-start: #4A4AFF;
+  --accent-end: #C061E8;
+}
+
+/* Custom utility classes for theme colors */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+.bg-theme-surface {
+  background-color: var(--bg-surface);
+  transition: background-color 0.3s ease;
+}
+
+.text-theme-primary {
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.border-theme {
+  border-color: var(--border);
+  transition: border-color 0.3s ease;
+}
+
+.bg-accent-gradient {
+  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+}
+
+.text-accent-gradient {
+  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

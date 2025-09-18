@@ -45,6 +45,6 @@ io.on("connection", (socket) => {
   console.log(`✅ ${socket.id} connected`);
 });
 
-server.listen(5000, () => {
-  console.log("🚀 Server running on port 5000");
+server.listen(3000, () => {
+  console.log("🚀 Server running on port 3000");
 });

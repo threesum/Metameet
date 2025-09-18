@@ -1,20 +1,18 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Room from "./pages/Room";
-import Signup from "./pages/Signup";
-import Signin from "./pages/Signin";
+import { Outlet, useLocation } from "react-router-dom";
+import Navbar from "./components/Navbar";
 
 const App = () => {
+  const location = useLocation();
+  const isRoomPage = location.pathname === "/room";
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/room" element={<Room />} />
-      </Routes>
-    </Router>
+    <div className={isRoomPage ? "" : "min-h-screen bg-theme-primary text-theme-primary"}>
+      <Navbar />
+      <main className={isRoomPage ? "" : "relative"}>
+        <Outlet />
+      </main>
+    </div>
   );
 };
 

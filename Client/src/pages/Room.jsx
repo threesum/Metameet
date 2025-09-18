@@ -68,9 +68,9 @@ const Room = () => {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-gray-900 relative overflow-hidden">
+    <div className="w-screen h-screen bg-theme-primary relative overflow-hidden">
       {/* Welcome Message */}
-      <p className="absolute top-4 left-4 text-white font-semibold text-lg">
+      <p className="absolute top-4 left-4 text-theme-primary font-semibold text-lg">
         👋 Welcome, {user?.username}
       </p>
 
@@ -87,8 +87,11 @@ const Room = () => {
 
       {/* Your Avatar */}
       <div
-        className="absolute w-10 h-10 bg-blue-500 rounded shadow-lg transition-all duration-100"
-        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+        className="absolute w-10 h-10 rounded shadow-lg transition-all duration-100"
+        style={{ 
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          backgroundColor: 'var(--accent-start)'
+        }}
       />
 
       {/* Other Players */}
@@ -96,8 +99,11 @@ const Room = () => {
         id !== socket.id ? (
           <div
             key={id}
-            className="absolute w-10 h-10 bg-green-500 rounded shadow-lg"
-            style={{ transform: `translate(${player.x}px, ${player.y}px)` }}
+            className="absolute w-10 h-10 rounded shadow-lg"
+            style={{ 
+              transform: `translate(${player.x}px, ${player.y}px)`,
+              backgroundColor: 'var(--accent-end)'
+            }}
           />
         ) : null
       )}

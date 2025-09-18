@@ -24,21 +24,27 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-black text-white">
+    <div className="flex justify-center items-center h-screen">
       <motion.form
         onSubmit={handleSignup}
-        className="p-8 bg-gray-800 rounded-xl shadow-lg max-w-sm w-full"
+        className="p-8 bg-theme-surface rounded-xl shadow-lg max-w-sm w-full border border-theme"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 50 }}
       >
-        <h2 className="text-2xl font-bold mb-4 text-center text-purple-400">Sign Up</h2>
-        <p className="text-center text-gray-400 mb-6">Create your account to start</p>
+        <h2 className="text-2xl font-bold mb-4 text-center text-accent-gradient">Sign Up</h2>
+        <p className="text-center text-theme-secondary mb-6">Create your account to start</p>
 
         <motion.input
           name="username"
           placeholder="Email Address"
-          className="mb-4 px-4 py-2 block w-full text-black bg-gray-200 border-2 border-gray-600 rounded-md focus:outline-none focus:border-purple-500 transition"
+          className="mb-4 px-4 py-2 block w-full text-theme-primary bg-white border-2 border-theme rounded-md focus:outline-none transition"
+          style={{ 
+            '--tw-ring-color': 'var(--accent-start)',
+            'borderColor': 'var(--border)'
+          }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--accent-start)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
           onChange={handleChange}
           required
           whileFocus={{ scale: 1.05 }}
@@ -48,7 +54,13 @@ const Signup = () => {
           name="password"
           type="password"
           placeholder="Password"
-          className="mb-6 px-4 py-2 block w-full text-black bg-gray-200 border-2 border-gray-600 rounded-md focus:outline-none focus:border-purple-500 transition"
+          className="mb-6 px-4 py-2 block w-full text-theme-primary bg-white border-2 border-theme rounded-md focus:outline-none transition"
+          style={{ 
+            '--tw-ring-color': 'var(--accent-start)',
+            'borderColor': 'var(--border)'
+          }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--accent-start)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
           onChange={handleChange}
           required
           whileFocus={{ scale: 1.05 }}
@@ -58,7 +70,7 @@ const Signup = () => {
 
         <motion.button
           type="submit"
-          className="w-full py-2 bg-purple-600 rounded-md font-semibold text-white hover:bg-purple-700 transition"
+          className="w-full py-2 bg-accent-gradient rounded-md font-semibold text-white hover:opacity-90 transition"
           whileHover={{ scale: 1.05 }}
         >
           Sign Up
