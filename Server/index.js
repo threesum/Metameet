@@ -1,7 +1,11 @@
+require('dotenv').config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const User = require("./models/User");
 
 const app = express();
 app.use(cors());
@@ -15,36 +19,78 @@ const io = new Server(server, {
   },
 });
 
-const users = []; // 👥 In-memory user store
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ Connected to MongoDB"))
+.catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // 🔐 Sign Up
-app.post("/signup", (req, res) => {
-  const { username, password } = req.body;
+app.post("/signup", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  if (users.find((u) => u.username === username)) {
-    return res.status(409).json({ message: "User already exists" });
+    // Check if user already exists
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = new User({
+      username,
+      password: hashedPassword
+    });
+
+    await newUser.save();
+
+    return res.status(201).json({ 
+      message: "Signup successful", 
+      user: { username: newUser.username } 
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-
-  users.push({ username, password });
-  return res.status(201).json({ message: "Signup successful" });
 });
 
 // 🔓 Sign In
-app.post("/signin", (req, res) => {
-  const { username, password } = req.body;
+app.post("/signin", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const user = users.find((u) => u.username === username && u.password === password);
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    // Find user
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    return res.status(200).json({ 
+      message: "Signin successful", 
+      user: { username: user.username } 
+    });
+  } catch (error) {
+    console.error("Signin error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-
-  return res.status(200).json({ message: "Signin successful", user: { username } });
 });
 
 io.on("connection", (socket) => {
   console.log(`✅ ${socket.id} connected`);
 });
 
-server.listen(3000, () => {
-  console.log("🚀 Server running on port 3000");
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
