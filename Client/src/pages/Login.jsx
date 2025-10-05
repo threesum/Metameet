@@ -1,40 +1,41 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AuthShell from "../components/AuthShell";
+import { useAuth } from "../contexts/AuthContext";
 
-const Signin = () => {
+const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSignin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    try {
-      const res = await axios.post("http://localhost:3000/signin", form);
-      localStorage.setItem("metameet-user", JSON.stringify(res.data.user));
+    const result = await login(form.username, form.password);
+    
+    if (result.success) {
       navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Signin failed");
+    } else {
+      setError(result.error);
     }
   };
 
   return (
     <AuthShell title="Welcome Back" subtitle="Sign in to access your virtual rooms">
       <motion.form
-        onSubmit={handleSignin}
+        onSubmit={handleLogin}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: .55, ease: [0.4, 0.8, 0.3, 1] }}
         className="space-y-5"
-        aria-describedby={error ? 'signin-error' : undefined}
+        aria-describedby={error ? 'login-error' : undefined}
       >
         <div className="space-y-4">
           <div>
@@ -84,7 +85,7 @@ const Signin = () => {
           </div>
         </div>
 
-        {error && <p id="signin-error" role="alert" className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">{error}</p>}
+        {error && <p id="login-error" role="alert" className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">{error}</p>}
 
         <div className="pt-2">
           <motion.button
@@ -103,4 +104,4 @@ const Signin = () => {
   );
 };
 
-export default Signin;
+export default Login;

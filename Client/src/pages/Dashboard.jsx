@@ -29,7 +29,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("metameet-user");
-    navigate("/signin");
+    navigate("/login");
   };
 
   // Close dropdown when clicking outside

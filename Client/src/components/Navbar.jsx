@@ -9,29 +9,56 @@ const Navbar = () => {
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef(null); // wrapper of dropdown for outside click detection
+  const profileBtnRef = useRef(null); // avatar button ref for positioning
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
   const user = JSON.parse(localStorage.getItem("metameet-user") || "{}");
   const isLoggedIn = user && user.username;
 
   const handleLogout = () => {
     localStorage.removeItem("metameet-user");
-    navigate("/signin");
+    navigate("/login");
   };
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside & reposition on resize/scroll
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        profileBtnRef.current &&
+        !profileBtnRef.current.contains(event.target)
+      ) {
         setShowUserDropdown(false);
       }
     };
 
+    const computePosition = () => {
+      if (!profileBtnRef.current) return;
+      const rect = profileBtnRef.current.getBoundingClientRect();
+      // Desired dropdown width (matches w-48 -> 12rem -> 192px)
+      const dropdownWidth = 192;
+      const padding = 8; // gap below avatar
+      let left = rect.left + rect.width - dropdownWidth; // right-align to avatar
+      left = Math.max(8, Math.min(left, window.innerWidth - dropdownWidth - 8));
+      const top = rect.bottom + padding; // place below avatar overlapping nav visually
+      setDropdownPos({ top, left });
+    };
+
+    if (showUserDropdown) {
+      computePosition();
+      window.addEventListener('resize', computePosition);
+      window.addEventListener('scroll', computePosition, true);
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', computePosition);
+      window.removeEventListener('scroll', computePosition, true);
     };
-  }, []);
+  }, [showUserDropdown]);
 
   return (
     <>
@@ -70,20 +97,19 @@ const Navbar = () => {
 
           {/* Conditional Auth/User Section */}
           {isLoggedIn ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="w-10 h-10 rounded-full bg-accent-gradient flex items-center justify-center text-white text-sm font-bold hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)]"
-                aria-label="User menu"
-              >
-                {user.username?.[0]?.toUpperCase() || "U"}
-              </button>
-            </div>
+            <button
+              ref={profileBtnRef}
+              onClick={() => setShowUserDropdown(prev => !prev)}
+              className="w-10 h-10 rounded-full bg-accent-gradient flex items-center justify-center text-white text-sm font-bold hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)] relative"
+              aria-label="User menu"
+            >
+              {user.username?.[0]?.toUpperCase() || "U"}
+            </button>
           ) : (
             <>
               {/* Auth Buttons */}
               <button 
-                onClick={() => navigate("/signin")} 
+                onClick={() => navigate("/login")} 
                 className="btn-base btn-primary btn-shine"
               >
                 Login
@@ -100,18 +126,19 @@ const Navbar = () => {
         </div>
       </motion.nav>
 
-      {/* Dropdown rendered outside navbar structure */}
-      {showUserDropdown && (
+      {showUserDropdown && isLoggedIn && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -10 }}
-          transition={{ duration: 0.15 }}
-          className="fixed right-4 top-20 w-48 glass-panel glow-border soft-shadow rounded-xl py-2 z-50"
           ref={dropdownRef}
+            // Using fixed & inline positioning so it doesn't affect navbar layout
+          initial={{ opacity: 0, scale: 0.95, y: -6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -6 }}
+          transition={{ duration: 0.16, ease: [0.4, 0.8, 0.3, 1] }}
+          style={{ top: dropdownPos.top, left: dropdownPos.left, position: 'fixed' }}
+          className="w-48 glass-panel glow-border soft-shadow rounded-xl py-2 z-[100] backdrop-blur-xl"
         >
           <div className="px-4 py-2 border-b border-theme-secondary/20">
-            <p className="text-sm font-medium text-theme-primary">{user.username || "User"}</p>
+            <p className="text-sm font-medium text-theme-primary truncate">{user.username || "User"}</p>
           </div>
           <button
             onClick={handleLogout}

@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AuthShell from "../components/AuthShell";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
+import { useAuth } from "../contexts/AuthContext";
 
 const Signup = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,12 +20,12 @@ const Signup = () => {
     e.preventDefault();
     setError("");
 
-    try {
-      const res = await axios.post("http://localhost:3000/signup", form);
-      localStorage.setItem("metameet-user", JSON.stringify(res.data.user));
+    const result = await signup(form.username, form.password);
+    
+    if (result.success) {
       navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Signup failed");
+    } else {
+      setError(result.error);
     }
   };
 
@@ -81,6 +84,12 @@ const Signup = () => {
                 )}
               </button>
             </div>
+            {form.password && (
+              <PasswordStrengthMeter 
+                password={form.password} 
+                onStrengthChange={setPasswordStrength}
+              />
+            )}
           </div>
         </div>
 
@@ -97,7 +106,7 @@ const Signup = () => {
           </motion.button>
         </div>
 
-        <p className="text-xs text-theme-secondary text-center pt-2">Already have an account? <Link to="/signin" className="text-accent-gradient hover:opacity-80">Sign in</Link></p>
+        <p className="text-xs text-theme-secondary text-center pt-2">Already have an account? <Link to="/login" className="text-accent-gradient hover:opacity-80">Sign in</Link></p>
       </motion.form>
     </AuthShell>
   );

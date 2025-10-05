@@ -6,8 +6,9 @@ import App from './App.jsx'
 import Landing from "./pages/Landing"
 import Room from "./pages/Room"
 import Signup from "./pages/Signup"
-import Signin from "./pages/Signin"
+import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
+import NotFound from "./pages/NotFound"
 import { ThemeProvider } from "./contexts/ThemeContext"
 
 createRoot(document.getElementById('root')).render(
@@ -18,9 +19,10 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<App />}>
             <Route index element={<Landing />} />
             <Route path="signup" element={<Signup />} />
-            <Route path="signin" element={<Signin />} />
+            <Route path="login" element={<Login />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="room" element={<Room />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </Router>
