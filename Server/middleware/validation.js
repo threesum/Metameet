@@ -2,7 +2,11 @@ const { body, validationResult } = require('express-validator');
 
 // Signup validation rules
 const signupValidation = [
-  body('username') // Keep as 'username' for frontend compatibility, but validate as email
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters'),
+  body('email')
     .trim()
     .isEmail()
     .withMessage('Please enter a valid email address')
@@ -15,11 +19,10 @@ const signupValidation = [
 
 // Login validation rules
 const loginValidation = [
-  body('username') // Keep as 'username' for frontend compatibility, but validate as email
+  body('username')
     .trim()
-    .isEmail()
-    .withMessage('Please enter a valid email address')
-    .normalizeEmail(),
+    .notEmpty()
+    .withMessage('Username or email is required'),
   body('password')
     .trim()
     .notEmpty()

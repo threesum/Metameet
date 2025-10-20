@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -11,28 +13,35 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Initialize auth state from localStorage
-  useEffect(() => {
+// Helper function to initialize auth state from localStorage
+const getInitialAuthState = () => {
+  try {
     const storedToken = localStorage.getItem('metameet-token');
     const storedUser = localStorage.getItem('metameet-user');
     
     if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('metameet-token');
-        localStorage.removeItem('metameet-user');
-      }
+      return {
+        token: storedToken,
+        user: JSON.parse(storedUser)
+      };
     }
-    setLoading(false);
-  }, []);
+  } catch (error) {
+    console.error('Error parsing stored user data:', error);
+    localStorage.removeItem('metameet-token');
+    localStorage.removeItem('metameet-user');
+  }
+  
+  return {
+    token: null,
+    user: null
+  };
+};
+
+export const AuthProvider = ({ children }) => {
+  const initialState = getInitialAuthState();
+  const [user, setUser] = useState(initialState.user);
+  const [token, setToken] = useState(initialState.token);
+  const [loading, setLoading] = useState(false);
 
   // Set up axios interceptor for authenticated requests
   useEffect(() => {
@@ -70,46 +79,57 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         username,
         password
       });
 
       const { user: userData, token: authToken } = response.data;
       
+      const mappedUser = {
+        username: userData.username,
+        email: userData.email
+      };
+      
       // Store in localStorage
       localStorage.setItem('metameet-token', authToken);
-      localStorage.setItem('metameet-user', JSON.stringify(userData));
+      localStorage.setItem('metameet-user', JSON.stringify(mappedUser));
       
       // Update state
       setToken(authToken);
-      setUser(userData);
+      setUser(mappedUser);
       
-      return { success: true, user: userData };
+      return { success: true, user: mappedUser };
     } catch (error) {
       const message = error.response?.data?.error || 'Login failed';
       return { success: false, error: message };
     }
   };
 
-  const signup = async (username, password) => {
+  const signup = async (username, email, password) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/signup', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, {
         username,
+        email,
         password
       });
 
       const { user: userData, token: authToken } = response.data;
       
+      const mappedUser = {
+        username: userData.username,
+        email: userData.email
+      };
+      
       // Store token and user data for automatic login
       localStorage.setItem('metameet-token', authToken);
-      localStorage.setItem('metameet-user', JSON.stringify(userData));
+      localStorage.setItem('metameet-user', JSON.stringify(mappedUser));
       
       // Update state to log user in immediately
       setToken(authToken);
-      setUser(userData);
+      setUser(mappedUser);
       
-      return { success: true, user: userData };
+      return { success: true, user: mappedUser };
     } catch (error) {
       const message = error.response?.data?.error || 'Signup failed';
       return { success: false, error: message };
@@ -139,7 +159,7 @@ export const AuthProvider = ({ children }) => {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Date.now() / 1000;
       return payload.exp < currentTime;
-    } catch (error) {
+    } catch {
       return true;
     }
   };

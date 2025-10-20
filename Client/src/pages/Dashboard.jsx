@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaPlus, FaSearch, FaCalendarAlt, FaStar, FaUsers, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { FaPlus, FaSearch } from "react-icons/fa";
+import Navbar from "../components/Navbar";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
 import SpaceCard from "../components/SpaceCard";
@@ -20,31 +21,7 @@ const mockSpaces = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("Last Visited");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const user = JSON.parse(localStorage.getItem("metameet-user") || "{}");
-
-  const handleLogout = () => {
-    localStorage.removeItem("metameet-user");
-    navigate("/login");
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowUserDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const filteredSpaces = mockSpaces.filter(space =>
     space.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,75 +33,8 @@ const Dashboard = () => {
       <AuroraBackground />
       <AnimatedGrid />
       
-      {/* Header */}
-      <header className="relative z-10 glass-panel glow-border soft-shadow mx-4 mt-4 rounded-2xl">
-        <div className="flex items-center justify-between px-6 py-4">
-          {/* Left - Brand & Navigation */}
-          <div className="flex items-center space-x-8">
-            <button
-              onClick={() => navigate('/')}
-              className="text-2xl font-bold text-accent-gradient focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)] rounded-md"
-              aria-label="Go to landing page"
-            >
-              MetaMeet
-            </button>
-            
-            <nav className="hidden md:flex items-center space-x-6">
-              <button className="flex items-center space-x-2 text-theme-secondary hover:text-theme-primary transition-colors">
-                <FaCalendarAlt size={16} />
-                <span>Events</span>
-              </button>
-              <button className="flex items-center space-x-2 text-accent-gradient font-medium">
-                <FaStar size={16} />
-                <span>My Spaces</span>
-              </button>
-            </nav>
-          </div>
-
-          {/* Right - User & Actions */}
-          <div className="flex items-center space-x-4">
-            
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="w-10 h-10 rounded-full bg-accent-gradient flex items-center justify-center text-white text-sm font-bold hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)]"
-                aria-label="User menu"
-              >
-                {user.username?.[0]?.toUpperCase() || "U"}
-              </button>
-              
-              {showUserDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-12 w-48 glass-panel glow-border soft-shadow rounded-xl py-2"
-                >
-                  <div className="px-4 py-2 border-b border-theme-secondary/20">
-                    <p className="text-sm font-medium text-theme-primary">{user.username || "User"}</p>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-theme-secondary hover:text-theme-primary hover:bg-theme-surface/50 transition-colors flex items-center space-x-2"
-                  >
-                    <FaSignOutAlt size={14} />
-                    <span>Logout</span>
-                  </button>
-                </motion.div>
-              )}
-            </div>
-
-            <button 
-              onClick={() => navigate('/room')}
-              className="btn-base btn-primary btn-shine"
-            >
-              <FaPlus size={14} className="mr-2" />
-              Create Space
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Main Content */}
       <main className="relative z-10 px-4 py-8">

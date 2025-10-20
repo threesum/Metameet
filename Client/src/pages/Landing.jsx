@@ -6,6 +6,7 @@ import { FaUsers, FaSyncAlt, FaUserEdit, FaMobileAlt } from "react-icons/fa";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
 import GlassCard from "../components/GlassCard";
+import Navbar from "../components/Navbar";
 
 const features = [
   {
@@ -86,6 +87,7 @@ const Landing = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden w-full bg-theme-primary text-theme-primary">
+      <Navbar />
       {/* Ambient Layers */}
       <AuroraBackground />
       <AnimatedGrid />

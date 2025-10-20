@@ -6,7 +6,7 @@ import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 import { useAuth } from "../contexts/AuthContext";
 
 const Signup = () => {
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -20,7 +20,7 @@ const Signup = () => {
     e.preventDefault();
     setError("");
 
-    const result = await signup(form.username, form.password);
+    const result = await signup(form.username, form.email, form.password);
     
     if (result.success) {
       navigate("/dashboard");
@@ -41,15 +41,30 @@ const Signup = () => {
       >
         <div className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-1 text-theme-secondary">Email Address</label>
+            <label htmlFor="username" className="block text-sm font-medium mb-1 text-theme-secondary">Username</label>
             <input
               id="username"
               name="username"
+              type="text"
+              autoComplete="username"
+              placeholder="Choose a username"
+              className={`input-base ${error ? 'input-error' : ''}`}
+              onChange={handleChange}
+              value={form.username}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1 text-theme-secondary">Email Address</label>
+            <input
+              id="email"
+              name="email"
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
               className={`input-base ${error ? 'input-error' : ''}`}
               onChange={handleChange}
+              value={form.email}
               required
             />
           </div>

@@ -17,16 +17,22 @@ router.post("/signup",
     const session = await mongoose.startSession();
     
     try {
-      const { username, password } = req.body;
+      const { username, email, password } = req.body;
 
       // Validate required fields
-      validateRequiredFields({ username, password }, ['username', 'password']);
+      validateRequiredFields({ username, email, password }, ['username', 'email', 'password']);
 
       await session.withTransaction(async () => {
-        // Check if user already exists (within transaction)
-        const existingUser = await User.findOne({ email: username }).session(session);
-        if (existingUser) {
-          throw new ValidationError('User already exists');
+        // Check if username already exists
+        const existingUsername = await User.findOne({ username }).session(session);
+        if (existingUsername) {
+          throw new ValidationError('Username already exists');
+        }
+
+        // Check if email already exists
+        const existingEmail = await User.findOne({ email }).session(session);
+        if (existingEmail) {
+          throw new ValidationError('Email already exists');
         }
 
         // Hash password
@@ -34,7 +40,8 @@ router.post("/signup",
 
         // Create new user
         const newUser = new User({
-          email: username, // Use the email from username field
+          username,
+          email,
           password: hashedPassword
         });
 
@@ -45,7 +52,7 @@ router.post("/signup",
 
         return res.status(201).json({ 
           message: "Signup successful", 
-          user: { email: newUser.email },
+          user: { username: newUser.username, email: newUser.email },
           token: token,
           expiresIn: process.env.JWT_EXPIRES_IN
         });
@@ -55,7 +62,7 @@ router.post("/signup",
       console.error("Signup error:", {
         name: error.name,
         message: error.message,
-        username: req.body.username // Log username from request body for debugging but not password
+        username: req.body.username
       });
       next(error);
     } finally {
@@ -76,8 +83,11 @@ router.post("/login",
       // Validate required fields
       validateRequiredFields({ username, password }, ['username', 'password']);
 
-      // Find user by email
-      const user = await User.findOne({ email: username });
+      // Find user by username or email
+      const user = await User.findOne({
+        $or: [{ username }, { email: username }]
+      });
+      
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -93,7 +103,7 @@ router.post("/login",
 
       return res.status(200).json({ 
         message: "Login successful", 
-        user: { email: user.email },
+        user: { username: user.username, email: user.email },
         token: token,
         expiresIn: process.env.JWT_EXPIRES_IN
       });
@@ -101,7 +111,7 @@ router.post("/login",
       console.error("Login error:", {
         name: error.name,
         message: error.message,
-        username: req.body.username // Log username from request body for debugging but not password
+        username: req.body.username
       });
       next(error);
     }
