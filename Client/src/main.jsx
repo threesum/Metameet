@@ -21,7 +21,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="signup" element={<Signup />} />
             <Route path="login" element={<Login />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="room" element={<Room />} />
+            <Route path="room/:roomId" element={<Room />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
