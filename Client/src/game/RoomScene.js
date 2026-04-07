@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import socket from '../socket';
 
 // Tile frame indices from the Kenney Roguelike Modern City sprite sheet
 // Sprite sheet: 37 cols x 28 rows = 1036 tiles, each 16x16px
@@ -376,8 +377,16 @@ function buildMaps() {
 const { ground: GROUND, objects: OBJECTS } = buildMaps();
 
 export default class RoomScene extends Phaser.Scene {
-  constructor() {
+  constructor({ roomId } = {}) {
     super({ key: 'RoomScene' });
+    this.roomId = roomId;
+    this.remotePlayers = new Map();
+    this.lastSentState = { x: null, y: null, flipX: false, time: 0 };
+    this.handleSocketConnect = this.handleSocketConnect.bind(this);
+    this.handleRoomState = this.handleRoomState.bind(this);
+    this.handlePlayerJoined = this.handlePlayerJoined.bind(this);
+    this.handlePlayerMoved = this.handlePlayerMoved.bind(this);
+    this.handlePlayerLeft = this.handlePlayerLeft.bind(this);
   }
 
   preload() {
@@ -471,6 +480,33 @@ export default class RoomScene extends Phaser.Scene {
 
     // World bounds
     this.physics.world.setBounds(0, 0, W * D, H * D);
+
+    socket.on("connect", this.handleSocketConnect);
+    socket.on("room-state", this.handleRoomState);
+    socket.on("player-joined", this.handlePlayerJoined);
+    socket.on("player-moved", this.handlePlayerMoved);
+    socket.on("player-left", this.handlePlayerLeft);
+
+    if (socket.connected) {
+      this.handleSocketConnect();
+    }
+
+    this.events.once("shutdown", () => {
+      if (this.roomId) {
+        socket.emit("leave-room", this.roomId);
+      }
+
+      socket.off("connect", this.handleSocketConnect);
+      socket.off("room-state", this.handleRoomState);
+      socket.off("player-joined", this.handlePlayerJoined);
+      socket.off("player-moved", this.handlePlayerMoved);
+      socket.off("player-left", this.handlePlayerLeft);
+
+      this.remotePlayers.forEach((remotePlayer) => {
+        remotePlayer.sprite.destroy();
+      });
+      this.remotePlayers.clear();
+    });
   }
 
   update() {
@@ -502,5 +538,140 @@ export default class RoomScene extends Phaser.Scene {
       this.player.anims.stop();
       this.player.setTexture('char_walk0');
     }
+
+    this.remotePlayers.forEach((remotePlayer) => {
+      remotePlayer.sprite.x = Phaser.Math.Linear(remotePlayer.sprite.x, remotePlayer.targetX, 0.35);
+      remotePlayer.sprite.y = Phaser.Math.Linear(remotePlayer.sprite.y, remotePlayer.targetY, 0.35);
+
+      const isRemoteMoving =
+        Math.abs(remotePlayer.sprite.x - remotePlayer.targetX) > 1 ||
+        Math.abs(remotePlayer.sprite.y - remotePlayer.targetY) > 1;
+
+      if (isRemoteMoving) {
+        if (!remotePlayer.sprite.anims.isPlaying) {
+          remotePlayer.sprite.anims.play('walk', true);
+        }
+      } else {
+        remotePlayer.sprite.anims.stop();
+        remotePlayer.sprite.setTexture('char_walk0');
+      }
+    });
+
+    this.emitLocalPlayerState();
+  }
+
+  handleSocketConnect() {
+    if (!this.roomId) return;
+
+    socket.emit("join-room", this.roomId);
+  }
+
+  createRemotePlayer(player) {
+    if (!player?.socketId || player.socketId === socket.id || this.remotePlayers.has(player.socketId)) {
+      return;
+    }
+
+    const charScale = D / 192 * 1.1;
+    const sprite = this.add.sprite(player.x, player.y, 'char_walk0');
+    sprite.setScale(charScale);
+    sprite.setDepth(10);
+    sprite.setFlipX(Boolean(player.flipX));
+
+    this.remotePlayers.set(player.socketId, {
+      sprite,
+      targetX: player.x,
+      targetY: player.y,
+    });
+  }
+
+  handleRoomState({ players = [] }) {
+    const activeRemoteIds = new Set();
+
+    players.forEach((player) => {
+      if (player.socketId === socket.id) {
+        this.player.setPosition(player.x, player.y);
+        this.player.setFlipX(Boolean(player.flipX));
+        this.lastSentState = {
+          x: player.x,
+          y: player.y,
+          flipX: Boolean(player.flipX),
+          time: 0,
+        };
+        return;
+      }
+
+      activeRemoteIds.add(player.socketId);
+
+      if (!this.remotePlayers.has(player.socketId)) {
+        this.createRemotePlayer(player);
+      }
+
+      const remotePlayer = this.remotePlayers.get(player.socketId);
+      if (!remotePlayer) return;
+
+      remotePlayer.sprite.x = player.x;
+      remotePlayer.sprite.y = player.y;
+      remotePlayer.targetX = player.x;
+      remotePlayer.targetY = player.y;
+      remotePlayer.sprite.setFlipX(Boolean(player.flipX));
+    });
+
+    this.remotePlayers.forEach((remotePlayer, socketId) => {
+      if (activeRemoteIds.has(socketId)) return;
+
+      remotePlayer.sprite.destroy();
+      this.remotePlayers.delete(socketId);
+    });
+  }
+
+  handlePlayerJoined(player) {
+    this.createRemotePlayer(player);
+  }
+
+  handlePlayerMoved({ socketId, x, y, flipX }) {
+    if (!socketId || socketId === socket.id) return;
+
+    if (!this.remotePlayers.has(socketId)) {
+      this.createRemotePlayer({ socketId, x, y, flipX });
+    }
+
+    const remotePlayer = this.remotePlayers.get(socketId);
+    if (!remotePlayer) return;
+
+    remotePlayer.targetX = x;
+    remotePlayer.targetY = y;
+    remotePlayer.sprite.setFlipX(Boolean(flipX));
+  }
+
+  handlePlayerLeft({ socketId }) {
+    if (!socketId || !this.remotePlayers.has(socketId)) return;
+
+    this.remotePlayers.get(socketId).sprite.destroy();
+    this.remotePlayers.delete(socketId);
+  }
+
+  emitLocalPlayerState() {
+    if (!this.roomId || !this.player?.body) return;
+
+    const now = this.time.now;
+    const x = Math.round(this.player.x);
+    const y = Math.round(this.player.y);
+    const flipX = Boolean(this.player.flipX);
+    const positionChanged =
+      x !== this.lastSentState.x ||
+      y !== this.lastSentState.y ||
+      flipX !== this.lastSentState.flipX;
+
+    if (!positionChanged) return;
+    if (now - this.lastSentState.time < 50) return;
+
+    socket.emit("player-move", {
+      roomId: this.roomId,
+      x,
+      y,
+      flipX,
+    });
+
+    this.lastSentState = { x, y, flipX, time: now };
   }
 }

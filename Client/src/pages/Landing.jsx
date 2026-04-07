@@ -6,7 +6,7 @@ import { FaUsers, FaSyncAlt, FaUserEdit, FaMobileAlt } from "react-icons/fa";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
 import GlassCard from "../components/GlassCard";
-import Navbar from "../components/Navbar";
+import { generateRoomId } from "../utils/rooms";
 
 const features = [
   {
@@ -84,10 +84,12 @@ function GlowingParticles({ count = 90, className = "" }) {
 
 const Landing = () => {
   const navigate = useNavigate();
+  const handleQuickRoom = () => {
+    navigate(`/room/${generateRoomId()}`);
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden w-full bg-theme-primary text-theme-primary">
-      <Navbar />
       {/* Ambient Layers */}
       <AuroraBackground />
       <AnimatedGrid />
@@ -121,10 +123,10 @@ const Landing = () => {
             className="flex justify-center items-center"
           >
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/dashboard')}
               className="btn-base btn-cta ring-pulse shadow-lg"
             >
-              Get Started
+              Open Demo
             </button>
           </motion.div>
         </div>
@@ -158,8 +160,8 @@ const Landing = () => {
           <h3 className="text-2xl md:text-3xl font-bold mb-4">Ready to Build Your Space?</h3>
             <p className="text-theme-secondary max-w-2xl mx-auto mb-8">Spin up a room, invite your team or friends, and explore movement, presence, and ambient collaboration in seconds.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button onClick={() => navigate('/room')} className="btn-base btn-primary">Start Now</button>
-              <button onClick={() => navigate('/signup')} className="btn-base btn-outline glow-border">Create Account</button>
+              <button onClick={() => navigate('/dashboard')} className="btn-base btn-primary">Go To Rooms</button>
+              <button onClick={handleQuickRoom} className="btn-base btn-outline glow-border">Quick Room</button>
             </div>
         </GlassCard>
       </section>

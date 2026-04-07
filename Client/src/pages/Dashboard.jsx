@@ -1,30 +1,28 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaPlus, FaSearch } from "react-icons/fa";
+import { FaArrowRight, FaPlus } from "react-icons/fa";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
-import SpaceCard from "../components/SpaceCard";
-
-const mockSpaces = [
-  {
-    id: 1,
-    name: "GHS",
-    thumbnail: "/api/placeholder/400/300",
-    lastVisited: "today",
-    isOwner: true,
-    participants: 12,
-    description: "School collaboration space"
-  }
-];
+import { generateRoomId, normalizeRoomId } from "../utils/rooms";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [roomIdInput, setRoomIdInput] = useState("");
 
-  const filteredSpaces = mockSpaces.filter(space =>
-    space.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCreateRoom = () => {
+    const roomId = generateRoomId();
+    navigate(`/room/${roomId}`);
+  };
+
+  const handleJoinRoom = (event) => {
+    event.preventDefault();
+
+    const normalizedRoomId = normalizeRoomId(roomIdInput);
+    if (!normalizedRoomId) return;
+
+    navigate(`/room/${normalizedRoomId}`);
+  };
 
   return (
     <div className="relative min-h-screen bg-theme-primary text-theme-primary overflow-hidden">
@@ -34,67 +32,96 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="relative z-10 px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          
-          {/* Content Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-            <div className="mb-4 md:mb-0">
-              <div className="flex items-center space-x-4 mb-4">
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FaSearch className="h-4 w-4 text-theme-secondary" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search spaces..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="glass-panel border-theme pl-12 pr-4 py-3 w-80 rounded-xl text-sm placeholder-theme-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)] transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Spaces Grid */}
-          <motion.div 
+        <div className="max-w-5xl mx-auto">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="text-center mb-10"
           >
-            {filteredSpaces.map((space, index) => (
-              <SpaceCard key={space.id} space={space} delay={index * 0.1} />
-            ))}
-            
-            {/* Create New Space Card */}
-            <motion.button
-              onClick={() => navigate('/room')}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: filteredSpaces.length * 0.1 }}
-              className="glass-panel glow-border soft-shadow p-8 rounded-2xl hover:opacity-80 transition-all group"
-            >
-              <div className="flex flex-col items-center justify-center text-center h-48">
-                <div className="w-16 h-16 rounded-full bg-accent-gradient/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <FaPlus size={24} className="text-accent-gradient" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Create New Space</h3>
-                <p className="text-sm text-theme-secondary">Start a new collaborative environment</p>
-              </div>
-            </motion.button>
+            <p className="text-sm uppercase tracking-[0.3em] text-theme-secondary mb-4">
+              Demo Lobby
+            </p>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">
+              Create a room or join your friend
+            </h1>
+            <p className="text-theme-secondary max-w-2xl mx-auto">
+              Use a room ID to enter the same shared space together. No login required for the demo.
+            </p>
           </motion.div>
 
-          {/* Empty State */}
-          {filteredSpaces.length === 0 && searchQuery && (
-            <div className="text-center py-12">
-              <FaSearch size={48} className="mx-auto text-theme-secondary mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No spaces found</h3>
-              <p className="text-theme-secondary">Try adjusting your search terms</p>
-            </div>
-          )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.button
+              onClick={handleCreateRoom}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="glass-panel glow-border soft-shadow p-8 rounded-2xl hover:opacity-80 transition-all group text-left"
+            >
+              <div className="flex flex-col justify-between min-h-72">
+                <div>
+                  <div className="w-16 h-16 rounded-full bg-accent-gradient/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <FaPlus size={24} className="text-accent-gradient" />
+                  </div>
+                  <p className="text-sm uppercase tracking-[0.25em] text-theme-secondary mb-3">
+                    Create
+                  </p>
+                  <h2 className="text-2xl font-semibold mb-3">Start a new room</h2>
+                  <p className="text-theme-secondary max-w-sm">
+                    We&apos;ll generate a fresh room ID and drop you directly into a shareable room link.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-3 text-sm font-medium mt-8">
+                  <FaPlus size={24} className="text-accent-gradient" />
+                  <span>Create Room</span>
+                </div>
+              </div>
+            </motion.button>
+
+            <motion.form
+              onSubmit={handleJoinRoom}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="glass-panel glow-border soft-shadow p-8 rounded-2xl text-left"
+            >
+              <div className="flex flex-col justify-between min-h-72">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.25em] text-theme-secondary mb-3">
+                    Join
+                  </p>
+                  <h2 className="text-2xl font-semibold mb-3">Enter an existing room</h2>
+                  <p className="text-theme-secondary max-w-sm mb-6">
+                    Paste the room ID your friend shares with you and jump into the same space.
+                  </p>
+                  <label htmlFor="room-id" className="block text-sm font-medium mb-2">
+                    Room ID
+                  </label>
+                  <input
+                    id="room-id"
+                    type="text"
+                    value={roomIdInput}
+                    onChange={(event) => setRoomIdInput(normalizeRoomId(event.target.value))}
+                    placeholder="e.g. abc123"
+                    className="w-full rounded-xl border border-theme bg-black/10 px-4 py-3 text-base placeholder-theme-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-start)]"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!roomIdInput}
+                  className="btn-base btn-primary mt-8 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-3"
+                >
+                  <span>Join Room</span>
+                  <FaArrowRight size={14} />
+                </button>
+              </div>
+            </motion.form>
+          </div>
         </div>
       </main>
     </div>

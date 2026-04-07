@@ -1,23 +1,130 @@
+const WORLD_WIDTH = 40 * 32;
+const WORLD_HEIGHT = 30 * 32;
+
+const roomPlayers = new Map();
+
+const getSpawnPoint = (playerCount) => {
+  const spawnOffsets = [
+    { x: 0, y: 0 },
+    { x: 64, y: 0 },
+    { x: 0, y: 64 },
+    { x: 64, y: 64 },
+    { x: -64, y: 0 },
+    { x: 0, y: -64 },
+  ];
+  const baseX = 5 * 32 + 16;
+  const baseY = 5 * 32 + 16;
+  const offset = spawnOffsets[playerCount % spawnOffsets.length];
+
+  return {
+    x: Math.max(32, Math.min(WORLD_WIDTH - 32, baseX + offset.x)),
+    y: Math.max(32, Math.min(WORLD_HEIGHT - 32, baseY + offset.y)),
+  };
+};
+
+const ensureRoom = (roomId) => {
+  if (!roomPlayers.has(roomId)) {
+    roomPlayers.set(roomId, new Map());
+  }
+
+  return roomPlayers.get(roomId);
+};
+
+const removePlayerFromRoom = (io, socket, roomId) => {
+  if (!roomId || !roomPlayers.has(roomId)) return;
+
+  const players = roomPlayers.get(roomId);
+  const removed = players.delete(socket.id);
+
+  if (!removed) return;
+
+  socket.leave(roomId);
+  socket.to(roomId).emit("player-left", { socketId: socket.id });
+
+  if (players.size === 0) {
+    roomPlayers.delete(roomId);
+  }
+};
+
 const socketHandler = (io) => {
   io.on("connection", (socket) => {
     console.log(`[CONNECTED] ${socket.id} connected`);
 
     // Handle user joining a room
-    socket.on('join-room', (roomId) => {
-      socket.join(roomId);
-      console.log(`[ROOM] ${socket.id} joined room: ${roomId}`);
-      
-      // Notify others in the room
-      socket.to(roomId).emit('user-joined', { userId: socket.id });
+    socket.on('join-room', async (roomId) => {
+      const requestedRoomId = roomId;
+      if (!requestedRoomId || typeof requestedRoomId !== "string") return;
+
+      const normalizedRoomId = requestedRoomId.trim().toLowerCase();
+      if (!normalizedRoomId) return;
+
+      if (socket.data.roomId && socket.data.roomId !== normalizedRoomId) {
+        removePlayerFromRoom(io, socket, socket.data.roomId);
+      }
+
+      const players = ensureRoom(normalizedRoomId);
+      const existingPlayer = players.get(socket.id);
+      const spawnPoint = existingPlayer || getSpawnPoint(players.size);
+
+      const player = {
+        socketId: socket.id,
+        x: spawnPoint.x,
+        y: spawnPoint.y,
+        flipX: false,
+      };
+
+      players.set(socket.id, player);
+      socket.data.roomId = normalizedRoomId;
+
+      await socket.join(normalizedRoomId);
+      console.log(`[ROOM] ${socket.id} joined room: ${normalizedRoomId}`);
+
+      socket.emit("room-state", {
+        roomId: normalizedRoomId,
+        players: Array.from(players.values()),
+      });
+
+      socket.to(normalizedRoomId).emit("player-joined", player);
     });
 
     // Handle user leaving a room
     socket.on('leave-room', (roomId) => {
-      socket.leave(roomId);
-      console.log(`[ROOM] ${socket.id} left room: ${roomId}`);
-      
-      // Notify others in the room
-      socket.to(roomId).emit('user-left', { userId: socket.id });
+      const normalizedRoomId = (roomId || socket.data.roomId || "").trim().toLowerCase();
+      if (!normalizedRoomId) return;
+
+      removePlayerFromRoom(io, socket, normalizedRoomId);
+      if (socket.data.roomId === normalizedRoomId) {
+        socket.data.roomId = null;
+      }
+
+      if (roomPlayers.has(normalizedRoomId)) {
+        io.to(normalizedRoomId).emit("room-state", {
+          roomId: normalizedRoomId,
+          players: Array.from(roomPlayers.get(normalizedRoomId).values()),
+        });
+      }
+
+      console.log(`[ROOM] ${socket.id} left room: ${normalizedRoomId}`);
+    });
+
+    socket.on("player-move", (data = {}) => {
+      const roomId = (data.roomId || socket.data.roomId || "").trim().toLowerCase();
+      if (!roomId || !roomPlayers.has(roomId)) return;
+
+      const players = roomPlayers.get(roomId);
+      const player = players.get(socket.id);
+      if (!player) return;
+
+      player.x = Math.max(0, Math.min(WORLD_WIDTH, Number(data.x) || player.x));
+      player.y = Math.max(0, Math.min(WORLD_HEIGHT, Number(data.y) || player.y));
+      player.flipX = Boolean(data.flipX);
+
+      socket.to(roomId).emit("player-moved", {
+        socketId: socket.id,
+        x: player.x,
+        y: player.y,
+        flipX: player.flipX,
+      });
     });
 
     // Handle chat messages
@@ -35,6 +142,16 @@ const socketHandler = (io) => {
 
     // Handle disconnection
     socket.on("disconnect", () => {
+      const roomId = socket.data.roomId;
+      removePlayerFromRoom(io, socket, socket.data.roomId);
+
+      if (roomId && roomPlayers.has(roomId)) {
+        io.to(roomId).emit("room-state", {
+          roomId,
+          players: Array.from(roomPlayers.get(roomId).values()),
+        });
+      }
+
       console.log(`[DISCONNECTED] ${socket.id} disconnected`);
     });
   });
