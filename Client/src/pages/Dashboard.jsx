@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import Navbar from "../components/Navbar";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
 import SpaceCard from "../components/SpaceCard";
@@ -32,9 +31,6 @@ const Dashboard = () => {
       {/* Background Elements */}
       <AuroraBackground />
       <AnimatedGrid />
-      
-      {/* Navbar */}
-      <Navbar />
 
       {/* Main Content */}
       <main className="relative z-10 px-4 py-8">
