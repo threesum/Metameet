@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import socket from '../socket';
 
 // Tile frame indices from the Kenney Roguelike Modern City sprite sheet
 // Sprite sheet: 37 cols x 28 rows = 1036 tiles, each 16x16px
@@ -377,15 +376,14 @@ function buildMaps() {
 const { ground: GROUND, objects: OBJECTS } = buildMaps();
 
 export default class RoomScene extends Phaser.Scene {
-  constructor({ roomId } = {}) {
+  constructor() {
     super({ key: 'RoomScene' });
-    this.roomId = roomId;
+    this.selfSocketId = null;
     this.remotePlayers = new Map();
-    this.latestRoomRevision = -1;
+    this.onLocalPlayerMove = null;
+    this.onSceneReady = null;
+    this.isReady = false;
     this.lastSentState = { x: null, y: null, flipX: false, time: 0 };
-    this.handleSocketConnect = this.handleSocketConnect.bind(this);
-    this.handleRoomState = this.handleRoomState.bind(this);
-    this.handlePlayerMoved = this.handlePlayerMoved.bind(this);
   }
 
   preload() {
@@ -480,23 +478,11 @@ export default class RoomScene extends Phaser.Scene {
     // World bounds
     this.physics.world.setBounds(0, 0, W * D, H * D);
 
-    socket.on("connect", this.handleSocketConnect);
-    socket.on("room-state", this.handleRoomState);
-    socket.on("player-moved", this.handlePlayerMoved);
-
-    if (socket.connected) {
-      this.handleSocketConnect();
-    }
+    this.isReady = true;
+    this.onSceneReady?.(this);
 
     this.events.once("shutdown", () => {
-      if (this.roomId) {
-        socket.emit("leave-room", this.roomId);
-      }
-
-      socket.off("connect", this.handleSocketConnect);
-      socket.off("room-state", this.handleRoomState);
-      socket.off("player-moved", this.handlePlayerMoved);
-
+      this.isReady = false;
       this.remotePlayers.forEach((remotePlayer) => {
         remotePlayer.sprite.destroy();
       });
@@ -555,15 +541,20 @@ export default class RoomScene extends Phaser.Scene {
     this.emitLocalPlayerState();
   }
 
-  handleSocketConnect() {
-    if (!this.roomId) return;
+  setMovementEmitter(onLocalPlayerMove) {
+    this.onLocalPlayerMove = onLocalPlayerMove;
+  }
 
-    this.latestRoomRevision = -1;
-    socket.emit("join-room", this.roomId);
+  setReadyHandler(onSceneReady) {
+    this.onSceneReady = onSceneReady;
+
+    if (this.isReady) {
+      this.onSceneReady?.(this);
+    }
   }
 
   createRemotePlayer(player) {
-    if (!player?.socketId || player.socketId === socket.id || this.remotePlayers.has(player.socketId)) {
+    if (!player?.socketId || player.socketId === this.selfSocketId || this.remotePlayers.has(player.socketId)) {
       return;
     }
 
@@ -580,14 +571,15 @@ export default class RoomScene extends Phaser.Scene {
     });
   }
 
-  handleRoomState({ players = [], revision = 0 }) {
-    if (revision < this.latestRoomRevision) return;
-    this.latestRoomRevision = revision;
+  syncPlayers({ selfSocketId, players = [] } = {}) {
+    if (!this.player) return;
+
+    this.selfSocketId = selfSocketId || null;
 
     const activeRemoteIds = new Set();
 
     players.forEach((player) => {
-      if (player.socketId === socket.id) {
+      if (player.socketId === this.selfSocketId) {
         this.player.setPosition(player.x, player.y);
         this.player.setFlipX(Boolean(player.flipX));
         this.lastSentState = {
@@ -623,8 +615,8 @@ export default class RoomScene extends Phaser.Scene {
     });
   }
 
-  handlePlayerMoved({ socketId, x, y, flipX }) {
-    if (!socketId || socketId === socket.id) return;
+  applyRemoteMove({ socketId, x, y, flipX }) {
+    if (!socketId || socketId === this.selfSocketId) return;
 
     if (!this.remotePlayers.has(socketId)) {
       this.createRemotePlayer({ socketId, x, y, flipX });
@@ -639,7 +631,7 @@ export default class RoomScene extends Phaser.Scene {
   }
 
   emitLocalPlayerState() {
-    if (!this.roomId || !this.player?.body) return;
+    if (!this.onLocalPlayerMove || !this.selfSocketId || !this.player?.body) return;
 
     const now = this.time.now;
     const x = Math.round(this.player.x);
@@ -653,8 +645,7 @@ export default class RoomScene extends Phaser.Scene {
     if (!positionChanged) return;
     if (now - this.lastSentState.time < 50) return;
 
-    socket.emit("player-move", {
-      roomId: this.roomId,
+    this.onLocalPlayerMove({
       x,
       y,
       flipX,
