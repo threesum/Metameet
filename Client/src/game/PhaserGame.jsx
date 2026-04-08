@@ -10,6 +10,10 @@ export default function PhaserGame({ roomId }) {
   const gameRef = useRef(null);
 
   useEffect(() => {
+    if (gameRef.current) {
+      return undefined;
+    }
+
     gameRef.current = new Phaser.Game({
       type: Phaser.AUTO,
       parent: containerRef.current,

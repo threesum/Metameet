@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import './index.css'
@@ -12,20 +11,18 @@ import NotFound from "./pages/NotFound"
 import { ThemeProvider } from "./contexts/ThemeContext"
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ThemeProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<App />}>
-            <Route index element={<Landing />} />
-            <Route path="signup" element={<Signup />} />
-            <Route path="login" element={<Login />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="room/:roomId" element={<Room />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </Router>
-    </ThemeProvider>
-  </StrictMode>,
+  <ThemeProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<App />}>
+          <Route index element={<Landing />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="login" element={<Login />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="room/:roomId" element={<Room />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </Router>
+  </ThemeProvider>,
 )
