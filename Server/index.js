@@ -14,18 +14,32 @@ const socketHandler = require('./socket/socketHandler');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
+  methods: ["GET", "POST"],
+};
+
+const io = new Server(server, {
+  cors: corsOptions,
 });
 
 // Database connection
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(noSQLInjectionProtection);
 app.use(inputSanitization);

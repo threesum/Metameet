@@ -1,27 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaCopy, FaSignOutAlt } from 'react-icons/fa';
+import RoomCallOverlay from '../components/RoomCallOverlay';
 import PhaserGame from '../game/PhaserGame';
-import socket from '../socket';
+import useRoomCall from '../hooks/useRoomCall';
+import useRoomPresence from '../hooks/useRoomPresence';
 
 const Room = () => {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!roomId) return undefined;
-
-    const handleBeforeUnload = () => {
-      socket.emit("leave-room", roomId);
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [roomId]);
+  const roomPresence = useRoomPresence(roomId);
+  const roomCall = useRoomCall({
+    roomId,
+    selfSocketId: roomPresence.selfSocketId,
+    participants: roomPresence.participants,
+  });
 
   const handleCopyRoomLink = async () => {
     if (!roomId) return;
@@ -38,9 +33,7 @@ const Room = () => {
   };
 
   const handleQuitRoom = () => {
-    if (roomId) {
-      socket.emit("leave-room", roomId);
-    }
+    roomPresence.leaveRoom();
     navigate('/dashboard');
   };
 
@@ -74,7 +67,13 @@ const Room = () => {
         </motion.button>
       </div>
 
-      <PhaserGame roomId={roomId} />
+      <PhaserGame
+        selfSocketId={roomPresence.selfSocketId}
+        players={roomPresence.participants}
+        onLocalPlayerMove={roomPresence.emitLocalPlayerMove}
+        subscribeToRemoteMoves={roomPresence.subscribeToRemoteMoves}
+      />
+      <RoomCallOverlay {...roomCall} />
     </div>
   );
 };
