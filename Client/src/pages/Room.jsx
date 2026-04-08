@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaCopy, FaSignOutAlt } from 'react-icons/fa';
 import PhaserGame from '../game/PhaserGame';
+import socket from '../socket';
 
 const Room = () => {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!roomId) return undefined;
+
+    const handleBeforeUnload = () => {
+      socket.emit("leave-room", roomId);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [roomId]);
 
   const handleCopyRoomLink = async () => {
     if (!roomId) return;
@@ -21,6 +35,13 @@ const Room = () => {
     } catch (error) {
       console.error("Failed to copy room link", error);
     }
+  };
+
+  const handleQuitRoom = () => {
+    if (roomId) {
+      socket.emit("leave-room", roomId);
+    }
+    navigate('/dashboard');
   };
 
   return (
@@ -41,7 +62,7 @@ const Room = () => {
 
       <div className="fixed top-4 right-4 z-[1000]">
         <motion.button
-          onClick={() => navigate('/dashboard')}
+          onClick={handleQuitRoom}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}

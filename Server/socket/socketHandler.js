@@ -2,6 +2,7 @@ const WORLD_WIDTH = 40 * 32;
 const WORLD_HEIGHT = 30 * 32;
 
 const roomPlayers = new Map();
+const roomRevisions = new Map();
 
 const getSpawnPoint = (playerCount) => {
   const spawnOffsets = [
@@ -27,7 +28,22 @@ const ensureRoom = (roomId) => {
     roomPlayers.set(roomId, new Map());
   }
 
+  if (!roomRevisions.has(roomId)) {
+    roomRevisions.set(roomId, 0);
+  }
+
   return roomPlayers.get(roomId);
+};
+
+const emitRoomState = (io, roomId) => {
+  if (!roomId || !roomPlayers.has(roomId)) return;
+
+  roomRevisions.set(roomId, (roomRevisions.get(roomId) || 0) + 1);
+  io.to(roomId).emit("room-state", {
+    roomId,
+    revision: roomRevisions.get(roomId),
+    players: Array.from(roomPlayers.get(roomId).values()),
+  });
 };
 
 const removePlayerFromRoom = (io, socket, roomId) => {
@@ -39,11 +55,14 @@ const removePlayerFromRoom = (io, socket, roomId) => {
   if (!removed) return;
 
   socket.leave(roomId);
-  socket.to(roomId).emit("player-left", { socketId: socket.id });
 
   if (players.size === 0) {
     roomPlayers.delete(roomId);
+    roomRevisions.delete(roomId);
+    return;
   }
+
+  emitRoomState(io, roomId);
 };
 
 const socketHandler = (io) => {
@@ -79,12 +98,7 @@ const socketHandler = (io) => {
       await socket.join(normalizedRoomId);
       console.log(`[ROOM] ${socket.id} joined room: ${normalizedRoomId}`);
 
-      socket.emit("room-state", {
-        roomId: normalizedRoomId,
-        players: Array.from(players.values()),
-      });
-
-      socket.to(normalizedRoomId).emit("player-joined", player);
+      emitRoomState(io, normalizedRoomId);
     });
 
     // Handle user leaving a room
@@ -95,13 +109,6 @@ const socketHandler = (io) => {
       removePlayerFromRoom(io, socket, normalizedRoomId);
       if (socket.data.roomId === normalizedRoomId) {
         socket.data.roomId = null;
-      }
-
-      if (roomPlayers.has(normalizedRoomId)) {
-        io.to(normalizedRoomId).emit("room-state", {
-          roomId: normalizedRoomId,
-          players: Array.from(roomPlayers.get(normalizedRoomId).values()),
-        });
       }
 
       console.log(`[ROOM] ${socket.id} left room: ${normalizedRoomId}`);
@@ -142,15 +149,7 @@ const socketHandler = (io) => {
 
     // Handle disconnection
     socket.on("disconnect", () => {
-      const roomId = socket.data.roomId;
       removePlayerFromRoom(io, socket, socket.data.roomId);
-
-      if (roomId && roomPlayers.has(roomId)) {
-        io.to(roomId).emit("room-state", {
-          roomId,
-          players: Array.from(roomPlayers.get(roomId).values()),
-        });
-      }
 
       console.log(`[DISCONNECTED] ${socket.id} disconnected`);
     });

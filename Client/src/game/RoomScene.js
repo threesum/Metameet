@@ -381,12 +381,11 @@ export default class RoomScene extends Phaser.Scene {
     super({ key: 'RoomScene' });
     this.roomId = roomId;
     this.remotePlayers = new Map();
+    this.latestRoomRevision = -1;
     this.lastSentState = { x: null, y: null, flipX: false, time: 0 };
     this.handleSocketConnect = this.handleSocketConnect.bind(this);
     this.handleRoomState = this.handleRoomState.bind(this);
-    this.handlePlayerJoined = this.handlePlayerJoined.bind(this);
     this.handlePlayerMoved = this.handlePlayerMoved.bind(this);
-    this.handlePlayerLeft = this.handlePlayerLeft.bind(this);
   }
 
   preload() {
@@ -483,9 +482,7 @@ export default class RoomScene extends Phaser.Scene {
 
     socket.on("connect", this.handleSocketConnect);
     socket.on("room-state", this.handleRoomState);
-    socket.on("player-joined", this.handlePlayerJoined);
     socket.on("player-moved", this.handlePlayerMoved);
-    socket.on("player-left", this.handlePlayerLeft);
 
     if (socket.connected) {
       this.handleSocketConnect();
@@ -498,9 +495,7 @@ export default class RoomScene extends Phaser.Scene {
 
       socket.off("connect", this.handleSocketConnect);
       socket.off("room-state", this.handleRoomState);
-      socket.off("player-joined", this.handlePlayerJoined);
       socket.off("player-moved", this.handlePlayerMoved);
-      socket.off("player-left", this.handlePlayerLeft);
 
       this.remotePlayers.forEach((remotePlayer) => {
         remotePlayer.sprite.destroy();
@@ -563,6 +558,7 @@ export default class RoomScene extends Phaser.Scene {
   handleSocketConnect() {
     if (!this.roomId) return;
 
+    this.latestRoomRevision = -1;
     socket.emit("join-room", this.roomId);
   }
 
@@ -584,7 +580,10 @@ export default class RoomScene extends Phaser.Scene {
     });
   }
 
-  handleRoomState({ players = [] }) {
+  handleRoomState({ players = [], revision = 0 }) {
+    if (revision < this.latestRoomRevision) return;
+    this.latestRoomRevision = revision;
+
     const activeRemoteIds = new Set();
 
     players.forEach((player) => {
@@ -624,10 +623,6 @@ export default class RoomScene extends Phaser.Scene {
     });
   }
 
-  handlePlayerJoined(player) {
-    this.createRemotePlayer(player);
-  }
-
   handlePlayerMoved({ socketId, x, y, flipX }) {
     if (!socketId || socketId === socket.id) return;
 
@@ -641,13 +636,6 @@ export default class RoomScene extends Phaser.Scene {
     remotePlayer.targetX = x;
     remotePlayer.targetY = y;
     remotePlayer.sprite.setFlipX(Boolean(flipX));
-  }
-
-  handlePlayerLeft({ socketId }) {
-    if (!socketId || !this.remotePlayers.has(socketId)) return;
-
-    this.remotePlayers.get(socketId).sprite.destroy();
-    this.remotePlayers.delete(socketId);
   }
 
   emitLocalPlayerState() {
