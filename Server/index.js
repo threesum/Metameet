@@ -19,16 +19,36 @@ const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+
+  return allowedOrigins.some((allowedOrigin) => {
+    if (allowedOrigin === origin) {
+      return true;
+    }
+
+    if (!allowedOrigin.includes("*")) {
+      return false;
+    }
+
+    const escapedPattern = allowedOrigin
+      .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\*/g, ".*");
+
+    return new RegExp(`^${escapedPattern}$`).test(origin);
+  });
+};
+
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
       return;
     }
 
     callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "OPTIONS"],
 };
 
 const io = new Server(server, {
@@ -39,11 +59,20 @@ const io = new Server(server, {
 connectDB();
 
 // Middleware
+app.set("trust proxy", 1);
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(noSQLInjectionProtection);
 app.use(inputSanitization);
 app.use(generalLimiter);
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Metameet backend is running",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Routes
 app.use('/api', routes);
