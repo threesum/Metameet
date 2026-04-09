@@ -6,6 +6,7 @@ import { FaUsers, FaSyncAlt, FaUserEdit, FaMobileAlt } from "react-icons/fa";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
 import GlassCard from "../components/GlassCard";
+import useSocketStatus from "../hooks/useSocketStatus";
 import { generateRoomId } from "../utils/rooms";
 
 const features = [
@@ -84,7 +85,9 @@ function GlowingParticles({ count = 90, className = "" }) {
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { isConnected } = useSocketStatus();
   const handleQuickRoom = () => {
+    if (!isConnected) return;
     navigate(`/room/${generateRoomId()}`);
   };
 
@@ -161,7 +164,13 @@ const Landing = () => {
             <p className="text-theme-secondary max-w-2xl mx-auto mb-8">Spin up a room, invite your team or friends, and explore movement, presence, and ambient collaboration in seconds.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button onClick={() => navigate('/dashboard')} className="btn-base btn-primary">Go To Rooms</button>
-              <button onClick={handleQuickRoom} className="btn-base btn-outline glow-border">Quick Room</button>
+              <button
+                onClick={handleQuickRoom}
+                disabled={!isConnected}
+                className="btn-base btn-outline glow-border disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Quick Room
+              </button>
             </div>
         </GlassCard>
       </section>
