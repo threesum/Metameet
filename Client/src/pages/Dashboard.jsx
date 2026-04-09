@@ -4,19 +4,31 @@ import { motion } from "framer-motion";
 import { FaArrowRight, FaPlus } from "react-icons/fa";
 import AuroraBackground from "../components/AuroraBackground";
 import AnimatedGrid from "../components/AnimatedGrid";
+import useSocketStatus from "../hooks/useSocketStatus";
 import { generateRoomId, normalizeRoomId } from "../utils/rooms";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [roomIdInput, setRoomIdInput] = useState("");
+  const {
+    backendUrl,
+    connectionState,
+    connectionError,
+    isConnected,
+    isConnecting,
+    hasConnectionError,
+  } = useSocketStatus();
 
   const handleCreateRoom = () => {
+    if (!isConnected) return;
+
     const roomId = generateRoomId();
     navigate(`/room/${roomId}`);
   };
 
   const handleJoinRoom = (event) => {
     event.preventDefault();
+    if (!isConnected) return;
 
     const normalizedRoomId = normalizeRoomId(roomIdInput);
     if (!normalizedRoomId) return;
@@ -50,13 +62,49 @@ const Dashboard = () => {
             </p>
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className={`mb-6 rounded-2xl border px-5 py-4 backdrop-blur-xl ${
+              isConnected
+                ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-50"
+                : hasConnectionError
+                  ? "border-amber-400/25 bg-amber-500/10 text-amber-50"
+                  : "border-white/10 bg-white/5 text-white/90"
+            }`}
+          >
+            <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold">
+                  {isConnected
+                    ? "Backend connected"
+                    : isConnecting
+                      ? "Connecting to backend..."
+                      : "Backend unavailable"}
+                </p>
+                <p className="text-sm opacity-80">
+                  {isConnected
+                    ? "Room creation and joining are live. Anyone with the same room code can sync into the same space."
+                    : hasConnectionError
+                      ? `Rooms are disabled until the websocket server is reachable. ${connectionError}`
+                      : "Hold on while the app checks the websocket connection."}
+                </p>
+              </div>
+              <p className="text-xs uppercase tracking-[0.24em] opacity-65">
+                Server: {backendUrl}
+              </p>
+            </div>
+          </motion.div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <motion.button
               onClick={handleCreateRoom}
+              disabled={!isConnected}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="glass-panel glow-border soft-shadow p-8 rounded-2xl hover:opacity-80 transition-all group text-left"
+              className="glass-panel glow-border soft-shadow p-8 rounded-2xl hover:opacity-80 transition-all group text-left disabled:cursor-not-allowed disabled:opacity-55"
             >
               <div className="flex flex-col justify-between min-h-72">
                 <div>
@@ -113,7 +161,7 @@ const Dashboard = () => {
 
                 <button
                   type="submit"
-                  disabled={!roomIdInput}
+                  disabled={!roomIdInput || !isConnected}
                   className="btn-base btn-primary mt-8 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-3"
                 >
                   <span>Join Room</span>
