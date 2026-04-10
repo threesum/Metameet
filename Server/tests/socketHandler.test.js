@@ -29,8 +29,9 @@ const createIo = (...sockets) => ({
 });
 
 describe("socketHandler call helpers", () => {
-  test("normalizeRoomId trims and lowercases room ids", () => {
-    expect(normalizeRoomId("  DemoRoom  ")).toBe("demoroom");
+  test("normalizeRoomId trims, lowercases, and removes ambiguous room id characters", () => {
+    expect(normalizeRoomId("  DemoRoom  ")).toBe("demrm");
+    expect(normalizeRoomId(" O0I1L-room ")).toBe("-rm");
     expect(normalizeRoomId("")).toBe("");
     expect(normalizeRoomId(null)).toBe("");
   });
@@ -54,14 +55,14 @@ describe("socketHandler call helpers", () => {
     expect(
       validateCallParticipants(io, caller, "ROOM-A", "callee")
     ).toMatchObject({
-      normalizedRoomId: "room-a",
+      normalizedRoomId: "rm-a",
       targetSocket: callee,
     });
 
     expect(
       validateCallParticipants(io, caller, "room-a", "outsider")
     ).toMatchObject({
-      normalizedRoomId: "room-a",
+      normalizedRoomId: "rm-a",
       targetSocket: null,
     });
   });

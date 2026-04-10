@@ -5,7 +5,9 @@ const roomPlayers = new Map();
 const roomRevisions = new Map();
 
 const normalizeRoomId = (roomId) =>
-  typeof roomId === "string" ? roomId.trim().toLowerCase() : "";
+  typeof roomId === "string"
+    ? roomId.trim().toLowerCase().replace(/[01ilo]/g, "").replace(/[^a-z2-9-]/g, "")
+    : "";
 
 const getSpawnPoint = (playerCount) => {
   const spawnOffsets = [
